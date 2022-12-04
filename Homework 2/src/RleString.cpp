@@ -137,9 +137,90 @@ size_t RleString::size() const noexcept
     return listLength;
 }
 void RleString::insertAt(size_t index , char value)
-{
+{   
+    if(index > listLength) throw std::out_of_range("invalid index");
+    if(!head) 
+    {
+        head = new Node(value,1);
+        listLength++;
+        return;
+    }
+    
+    if(index >= 0 && index <= head->count)
+    {
+        if (value == head->symbol) head->count++;
+        else  if( head->next && value == head->next->symbol && index == head->count) head->next->count++; // if we have "aaabb" and we want to add b at position 4 , we increment the next node
+        else 
+        {
+            Node* newNode = new Node(value,1);
+            if (index == 0)
+            {
+                newNode->next = head;
+                head = newNode;
+            }
+            if (index == head->count)
+            {
+                newNode->next = head->next;
+                head->next = newNode;
+            }
+            else // we have to split the head Node in two
+            {
+                Node* splitNode = new Node(head->symbol,head->count - index);
+                head->count = index;
+                splitNode->next = head->next;
+                head->next = newNode;
+                newNode->next = splitNode;
+            }
+        }
+        
+    }
+    else
+    {
+       Node* current = head->next;
+       size_t charCounter = head->count + current->count;
+       Node* previous = head;
 
+       while (current->next && index > charCounter)
+       {
+            charCounter+= current->next->count;
+            previous = current;
+            current = current->next;
+       }
+
+       if(value == current->symbol) current->count++;
+       else
+       {
+            Node* newNode = new Node(value,1);
+           // if(!current->next && index == charCounter) current->next = newNode;
+          // else
+                if( current->next && value ==  current->next->symbol && index == charCounter) current->next->count++;
+                else
+                {
+                    if (index == charCounter - current->count)
+                    {
+                        newNode->next = current;
+                        previous->next = newNode;
+                    }
+                    if(index == charCounter)
+                    {
+                        newNode->next = current->next;
+                        current->next = newNode;
+                    }
+                    else
+                    {
+                        Node* splitNode = new Node (current->symbol,charCounter - index);
+                        current->count = index;
+                        splitNode->next = current->next;
+                        current->next = newNode;
+                        newNode->next = splitNode;
+                    }
+                }
+       }
+        
+    }
+    listLength++;
 }
+
 void RleString::removeAt(size_t index)
 {
     if(!head) throw std::out_of_range("empty string");
