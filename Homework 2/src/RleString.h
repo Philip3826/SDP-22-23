@@ -11,6 +11,8 @@ private:
 		Node(char symbol , size_t count) : symbol(symbol) , count(count) , next(nullptr)
 		{}
 		Node() = default;
+		void insertAfter(Node*& newNode);
+		void removeNext();
 		char symbol;  /// Symbol that is repeated one or more times
 		size_t count; /// Number of repetitions of the symbol
 		Node* next;   /// Next node in the linked list
@@ -19,7 +21,7 @@ private:
 private:
 	// TODO: Add data members here
 	Node* head{nullptr};
-	size_t listLength{0};
+	size_t stringLength{0};
 	void compress(const std::string& str);
 	void copy(const RleString& other);
 	void free();
@@ -91,5 +93,5 @@ public:
 	///   - "ac" is NOT a substring of "abc"
 	///   - "abc" is NOT a substring of "ab"
 	bool contains(const RleString& rle) const;
-	void print() const;
+	
 };

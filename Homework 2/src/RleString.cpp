@@ -2,6 +2,33 @@
 #include<stdexcept>
 
 // TODO Write your implementation here
+void RleString::Node::insertAfter(Node*& newNode)
+{
+    if(!this->next) this->next = newNode;
+        else
+        {
+            newNode->next = this->next;
+            this->next = newNode;
+        }
+    
+}
+void RleString::Node::removeNext()
+{
+    if (this->next)
+    {
+        if(this->next->next)
+        {
+            Node* toDelete = this->next;
+            this->next = toDelete->next;
+            delete toDelete;
+        }
+        else
+        {
+            delete this->next;
+            this->next = nullptr;
+        }
+    }
+}
 void RleString::compress(const std::string& str)
 {
     size_t strSize = str.size();
@@ -12,13 +39,13 @@ void RleString::compress(const std::string& str)
         if(str[i-1] != str[i])
         {
             Node* newNode = new Node(str[i],0);
-            listLength += LastNode->count;
+            stringLength += LastNode->count;
             LastNode->next = newNode;
             LastNode = LastNode->next;
         }
         LastNode->count++;
     }
-    listLength += LastNode->count;
+    stringLength += LastNode->count;
 }
 void RleString::copy(const RleString& other)
 {   
@@ -37,7 +64,7 @@ void RleString::copy(const RleString& other)
         current  = current->next;
         nextNode = nextNode->next;
     }
-    this->listLength = other.listLength;
+    this->stringLength = other.stringLength;
 }
 void RleString::free()
 {
@@ -47,10 +74,10 @@ void RleString::free()
         head = head->next;
         delete current;
     }
-    listLength = 0;
+    stringLength = 0;
 }
 // public
-RleString::RleString() : head(nullptr) , listLength(0)
+RleString::RleString() : head(nullptr) , stringLength(0)
 {}
 RleString::RleString(const std::string& str)
 {
@@ -134,15 +161,15 @@ bool RleString::operator==(const std::string& str) const
 }
 size_t RleString::size() const noexcept
 {
-    return listLength;
+    return stringLength;
 }
 void RleString::insertAt(size_t index , char value)
 {   
-    if(index > listLength) throw std::out_of_range("invalid index");
+    if(index > stringLength) throw std::out_of_range("invalid index");
     if(!head) 
     {
         head = new Node(value,1);
-        listLength++;
+        stringLength++;
         return;
     }
     
@@ -155,21 +182,16 @@ void RleString::insertAt(size_t index , char value)
             Node* newNode = new Node(value,1);
             if (index == 0)
             {
-                newNode->next = head;
-                head = newNode;
+               newNode->insertAfter(head);
+               head = newNode;
             }
-            if (index == head->count)
-            {
-                newNode->next = head->next;
-                head->next = newNode;
-            }
+            else if (index == head->count) head->insertAfter(newNode);
             else // we have to split the head Node in two
             {
                 Node* splitNode = new Node(head->symbol,head->count - index);
                 head->count = index;
-                splitNode->next = head->next;
-                head->next = newNode;
-                newNode->next = splitNode;
+                head->insertAfter(splitNode); // head -> splitNode -> ....
+                head->insertAfter(newNode); // head -> newNode -> splitNode -> ....
             }
         }
         
@@ -191,40 +213,30 @@ void RleString::insertAt(size_t index , char value)
        else
        {
             Node* newNode = new Node(value,1);
-           // if(!current->next && index == charCounter) current->next = newNode;
-          // else
-                if( current->next && value ==  current->next->symbol && index == charCounter) current->next->count++;
+            if( current->next && value ==  current->next->symbol && index == charCounter) current->next->count++;
+            else
+            {
+                if (index == charCounter - current->count) previous->insertAfter(newNode);
+                
+                if(index == charCounter) current->insertAfter(newNode);
                 else
                 {
-                    if (index == charCounter - current->count)
-                    {
-                        newNode->next = current;
-                        previous->next = newNode;
-                    }
-                    if(index == charCounter)
-                    {
-                        newNode->next = current->next;
-                        current->next = newNode;
-                    }
-                    else
-                    {
-                        Node* splitNode = new Node (current->symbol,charCounter - index);
-                        current->count = index;
-                        splitNode->next = current->next;
-                        current->next = newNode;
-                        newNode->next = splitNode;
-                    }
+                    Node* splitNode = new Node (current->symbol,charCounter - index);
+                    current->count = index;
+                    current->insertAfter(splitNode); // ... -> current -> splitNode ->....
+                    current->insertAfter(newNode);// ... -> current -> newNode -> splitNode -> .....
                 }
+            }
        }
         
     }
-    listLength++;
+    stringLength++;
 }
 
 void RleString::removeAt(size_t index)
 {
     if(!head) throw std::out_of_range("empty string");
-    if(index >= listLength) throw std::out_of_range("invalid index");
+    if(index >= stringLength) throw std::out_of_range("invalid index");
     Node* current = head;
     size_t charCounter = head->count;
     Node* previous = head;
@@ -235,16 +247,17 @@ void RleString::removeAt(size_t index)
         current = current->next;
     }
     current->count--;
-    listLength--;
+    stringLength--;
     
     if(current->count == 0)
     {
-        if(current == head)head = head->next;
-            else if(current->next) previous->next = current->next;
-                else previous->next = nullptr;
-        
-        delete current;
-       
+        if(current == head)
+        {
+            current = current->next;
+            delete head;
+            head = current;
+        }
+        else previous->removeNext();
     }
 
 
@@ -265,7 +278,38 @@ void RleString::reverse()
 }
 bool RleString::contains(const RleString& rle) const
 {
-    return false;
+    if(!rle.head) return true; // "" is a substring of every string
+    if(!this->head) return false; // "" has no substrings except ""
+
+    if(rle.stringLength > this->stringLength) return false; // substring must be shorter than the string
+   
+   Node* current = head;
+   Node* subCurrent = rle.head;
+
+   while (current && subCurrent)
+   {
+        if(current->symbol == subCurrent->symbol)
+        {
+            if(subCurrent == rle.head || !subCurrent->next) 
+            {
+                if(current->count >= subCurrent->count) subCurrent = subCurrent->next;
+            }
+            else
+            {
+                if(current->count == subCurrent->count) subCurrent = subCurrent->next;
+            }
+        }
+        else
+        {
+            subCurrent = rle.head;
+        }
+     current = current->next;
+   }
+   
+   if(!subCurrent) return true;
+
+   return false;
+
 }
 
 
