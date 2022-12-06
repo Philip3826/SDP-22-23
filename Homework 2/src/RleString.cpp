@@ -222,7 +222,7 @@ void RleString::insertAt(size_t index , char value)
                 else
                 {
                     Node* splitNode = new Node (current->symbol,charCounter - index);
-                    current->count = index;
+                    current->count -= splitNode->count;
                     current->insertAfter(splitNode); // ... -> current -> splitNode ->....
                     current->insertAfter(newNode);// ... -> current -> newNode -> splitNode -> .....
                 }

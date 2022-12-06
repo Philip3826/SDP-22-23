@@ -334,3 +334,33 @@ TEST_CASE("RleString::contains() 'scattered' characters are NOT considered as a 
 	RleString needle("ac");
 	REQUIRE_FALSE(haystack.contains(needle));
 }
+
+// My tests!
+
+
+TEST_CASE("RleString::insertAt() correctly inserts a new node in the middle")
+{
+
+    OriginalAndExpectedFixture fx("aabbbbcc", "aabbkbbcc");
+    fx.rlestr.insertAt(4, 'k');
+    fx.checkRleStringIsAsExpected();
+
+}
+
+TEST_CASE("RleSTring::contains() correctly tests substring in the middle")
+{
+	RleString haystack("aaaabbbbcccdddee");
+	RleString needle("bbcccd");
+	RleString anotherNeedle("bbccccd");
+	REQUIRE(haystack.contains(needle));
+	REQUIRE_FALSE(haystack.contains(anotherNeedle));
+}
+
+TEST_CASE("RleString::contains() correctly tests substring in the end")
+{
+	RleString haystack("aaaabbbbcccdddee");
+	RleString needle("bbbcccdddee");
+	RleString anotherNeedle("ccddeeee");
+	REQUIRE(haystack.contains(needle));
+	REQUIRE_FALSE(haystack.contains(anotherNeedle));
+}
